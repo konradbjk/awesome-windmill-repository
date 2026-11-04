@@ -1,0 +1,114 @@
+name: windmill
+
+networks:
+  windmill:
+    driver: bridge
+  proxy:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  worker_cache:
+  worker_logs:
+  worker_native_logs:
+  traefik_acme:
+
+services:
+  traefik:
+    image: traefik:v3
+    container_name: windmill-traefik
+    hostname: windmill-traefik
+    restart: unless-stopped
+    networks:
+      - proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOCKER_API_VERSION=1.51
+    env_file: .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_acme:/acme
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge=true"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.cloudflare.acme.email=${CF_API_EMAIL}"
+      - "--certificatesresolvers.cloudflare.acme.storage=/acme/acme.json"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+
+  postgres-windmill:
+    image: postgres:18-alpine
+    container_name: postgres-windmill
+    hostname: postgres-windmill
+    restart: unless-stopped
+    shm_size: 1g
+    networks:
+      - windmill
+    env_file: ./env/postgres.env
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U windmill -d windmill"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  windmill-server:
+    image: ${WM_IMAGE}
+    container_name: windmill-server
+    hostname: windmill-server
+    restart: unless-stopped
+    networks:
+      - windmill
+      - proxy
+    env_file: ./env/server.env
+    depends_on:
+      postgres-windmill:
+        condition: service_healthy
+    volumes:
+      - worker_logs:/tmp/windmill/logs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=windmill_proxy"
+      - "traefik.http.routers.windmill.rule=Host(`<REDACTED>`)"
+      - "traefik.http.routers.windmill.entrypoints=websecure"
+      - "traefik.http.routers.windmill.tls.certresolver=cloudflare"
+      - "traefik.http.services.windmill.loadbalancer.server.port=8000"
+
+  windmill-worker:
+    image: ${WM_IMAGE}
+    container_name: windmill-worker
+    hostname: windmill-worker
+    restart: unless-stopped
+    privileged: true
+    networks:
+      - windmill
+    env_file: ./env/worker.env
+    depends_on:
+      postgres-windmill:
+        condition: service_healthy
+    volumes:
+      - worker_cache:/tmp/windmill/cache
+      - worker_logs:/tmp/windmill/logs
+
+  windmill-worker-native:
+    image: ${WM_IMAGE}
+    container_name: windmill-worker-native
+    hostname: windmill-worker-native
+    restart: unless-stopped
+    networks:
+      - windmill
+    env_file: ./env/worker_native.env
+    depends_on:
+      postgres-windmill:
+        condition: service_healthy
+    volumes:
+      - worker_native_logs:/tmp/windmill/logs
