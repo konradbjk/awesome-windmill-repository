@@ -1,0 +1,14 @@
+{
+  "name": "cloudflare_d1",
+  "description": "Cloudflare D1 przez REST API. Uprawnienia wynikają z tokenu: D1 Read albo D1 Edit.",
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "required": ["account_id", "database_id", "api_token"],
+    "properties": {
+      "account_id":  { "type": "string", "description": "Cloudflare Account ID" },
+      "database_id": { "type": "string", "description": "UUID bazy D1 (wrangler d1 list)" },
+      "api_token":   { "type": "string", "description": "Cloudflare API token", "format": "password" }
+    }
+  }
+}

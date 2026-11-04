@@ -1,0 +1,15 @@
+{
+  "name": "cloudflare_r2",
+  "description": "Cloudflare R2 przez API zgodne z S3 (R2 API token: Access Key ID + Secret Access Key).",
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "required": ["account_id", "access_key_id", "secret_access_key", "bucket"],
+    "properties": {
+      "account_id":        { "type": "string", "description": "Cloudflare Account ID" },
+      "access_key_id":     { "type": "string" },
+      "secret_access_key": { "type": "string", "format": "password" },
+      "bucket":            { "type": "string", "default": "website-uploads" }
+    }
+  }
+}

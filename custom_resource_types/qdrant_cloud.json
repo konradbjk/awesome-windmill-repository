@@ -1,0 +1,13 @@
+{
+  "name": "qdrant_cloud",
+  "description": "Klaster Qdrant Cloud (albo self-hosted Qdrant: ten sam URL + API key).",
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "required": ["url", "api_key"],
+    "properties": {
+      "url":     { "type": "string", "description": "np. https://xxxx.eu-central-1-0.aws.cloud.qdrant.io:6333" },
+      "api_key": { "type": "string", "format": "password" }
+    }
+  }
+}

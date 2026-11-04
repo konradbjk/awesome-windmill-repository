@@ -1,0 +1,12 @@
+{
+  "name": "tavily_api",
+  "description": "Klucz Tavily Search API.",
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "required": ["api_key"],
+    "properties": {
+      "api_key": { "type": "string", "format": "password" }
+    }
+  }
+}
